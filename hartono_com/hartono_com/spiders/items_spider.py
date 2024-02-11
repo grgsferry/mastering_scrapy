@@ -1,8 +1,5 @@
 from pathlib import Path
-
 import scrapy
-
-
 class ItemsSpider(scrapy.Spider):
     name = "hartono_items"
     allowed_domains = ['myhartono.com']
@@ -11,14 +8,18 @@ class ItemsSpider(scrapy.Spider):
     ]
 
     def parse(self, response):
-        # brand_urls = response.css('div.ty-column6 a::attr(href)').getall()
-        brand_urls = ['https://myhartono.com/en/aqua/']
+        brand_urls = response.css('div.ty-column6 a::attr(href)').getall()
+        # brand_urls = ['https://myhartono.com/en/aqua/']
 
         for brand_url in brand_urls:
             yield scrapy.Request(brand_url, callback=self.find_list_item)
-        
+    
     def find_list_item(self, response):
         item_urls = response.css('div.ty-grid-list__image > a::attr(href)').getall()
+
+        next_page = response.css('a.ty-pagination__right-arrow::attr(href)').get()
+        if next_page is not None:
+            yield response.follow(next_page, callback=self.find_list_item)
 
         for item_url in item_urls:
             yield scrapy.Request(item_url, callback=self.find_detail_item)
@@ -32,4 +33,3 @@ class ItemsSpider(scrapy.Spider):
             'url': response.request.url
         }
         yield item
-
